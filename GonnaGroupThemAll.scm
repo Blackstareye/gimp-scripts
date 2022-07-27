@@ -1,7 +1,11 @@
 
-(define (script-fu-group-all image layer group-name)
+(define (script-fu-group-all image layer group-name toggle-size)
 
 	(gimp-image-undo-group-start image)
+	(print "Toggler is")
+	(print toggle-size)
+	(print "Toggler ende")
+
 	;; get all layers in the image
 	;; create group
 	;; add all to the group
@@ -20,7 +24,7 @@
 		;(gimp-message "it worked")
 		; for image range
 		; insert into group
-		(subGroupFunc image 0 layers new-group size)
+		(subGroupFunc image 0 layers new-group size toggle-size)
 
 	)
 
@@ -33,8 +37,24 @@
 	(gimp-image-reorder-item image c-layer group last-position)
 )
 
+(define (scaleToImageSize c-layer toggle-size)
+	(print "Scaling")
+	(print toggle-size)
+	(if (= toggle-size 1)
+	(begin
+		(print "Entering Scaling")
+		(gimp-layer-resize-to-image-size c-layer)
+	)
+	(begin
+		; nothing
+		(print "No Scaling")
+	)
+	)
+	(print "Scaling Aus")
+)
 
-(define (subGroupFunc image current-layer-count layers group size)
+
+(define (subGroupFunc image current-layer-count layers group size toggle-size)
 	
 	(if (>= current-layer-count size) 
 		(begin 
@@ -53,22 +73,29 @@
 				(print "2")
 				(print (gimp-item-is-group c-layer))
 				(define is_group (car (gimp-item-is-group c-layer)))
+				(define is_visible (car (gimp-layer-get-visible c-layer)))
 				(print "Grouping")
 				(print is_group)
+				(print is_visible)
 				(print "Grouping Car")
-
-				(if (= is_group 1)
+				
+				
+				(if (begin
+					(or (= is_group 1) (=  is_visible 0))
+					)
 					(begin
-							(print "Skipping Group")
+							(print "Skipping Group and or Visible Layer")
 					)
 					(begin
 						(print "3")
+						(scaleToImageSize c-layer toggle-size)
+						(print "After Scaling")
 						(moveLayer image c-layer group (- last-position 1))
 						(print "4")
 					)
 				)
 				(print "Checking this")
-				(subGroupFunc image (+ current-layer-count 1) layers group size)
+				(subGroupFunc image (+ current-layer-count 1) layers group size toggle-size)
 			)
 			(print "Leaving if")
 		)
@@ -91,6 +118,7 @@
 	;SF-ADJUSTMENT "Grouping Start" '(00 0 500 1 10 0 0)
 	;SF-ADJUSTMENT "Grouping End" '(-1 -1 500 1 10 0 0)
 	SF-STRING "Group Name" "group"
+	SF-TOGGLE "Scale Layer to Image" TRUE
 	;SF-ADJUSTMENT "Font-Size" '(100 1 1000 1 10 0 0)
 	;SF-FONT "Font" "Harrington"
 	;(script-fu-menu-register "script-fu-group-all" "<Image>/File/Create/Text")
